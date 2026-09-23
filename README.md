@@ -26,6 +26,73 @@ A 6-button ESP32 scene controller with Kailh Choc switches and per-button WS2812
    ```
 5. Subsequent updates can be done over OTA once the device is on your network.
 
+## Optional Plugins
+
+You can extend the functionality of this scene switch by adding custom ESPHome configs.
+
+**Included Example Plugins (`plugins/`):**
+- `media_mode.yaml`: Adds media control logic mapped to button clicks. Requires [HASS.Agent](https://github.com/HASS-Agent/HASS.Agent) installed on your Windows PC to route media commands (play/pause, track skip, volume) from Home Assistant.
+
+**How to enable plugins:**
+1. Create or copy your custom YAML file inside the `plugins/` directory (e.g., `plugins/media_mode.yaml`).
+2. Open `sceneswitch.yaml` and locate the `PLUGINS` section at the bottom.
+3. Uncomment the include directive and point it to your exact file name:
+   `<<: !include plugins/media_mode.yaml`
+
+## Home Assistant Automation Mapping
+
+The firmware fires Home Assistant events for each button press. Because workflows vary, **button actions are not hardcoded in ESPHome**. You must create Home Assistant automations triggered by these events.
+
+**Example Automation (YAML):**
+```yaml
+alias: Scene Switch - Spotlight Gestures
+triggers:
+  - event_type: esphome.scene_switch_button
+    event_data:
+      button: spotlight
+      click_type: single
+    trigger: event
+  - event_type: esphome.scene_switch_button
+    event_data:
+      button: spotlight
+      click_type: double
+    trigger: event
+  - event_type: esphome.scene_switch_button
+    event_data:
+      button: spotlight
+      click_type: long
+    trigger: event
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.event.data.click_type == 'single' }}"
+        sequence:
+          - action: switch.toggle
+            target:
+              entity_id: switch.spotlight_kamar_alief
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.event.data.click_type == 'double' }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id:
+                - light.bawah_1
+                - light.bawah_2
+                - light.kasur_1
+                - light.kasur_2
+                - light.tangga_1
+                - light.tangga_2
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.event.data.click_type == 'long' }}"
+        sequence:
+          - action: script.turn_on
+            target:
+              entity_id: script.all_lights_smart_toggle
+```
+
 ## Hardware
 
 - ESP32 (any variant with enough GPIOs for 6 buttons + 1 LED data pin)

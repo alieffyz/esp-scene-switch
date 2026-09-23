@@ -1,6 +1,3 @@
-packages:
-  media_mode: !include plugins/media_mode.yaml
-
 esphome:
   name: scene-switch
   friendly_name: Scene Switch
