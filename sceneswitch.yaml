@@ -1,0 +1,1125 @@
+packages:
+  media_mode: !include plugins/media_mode.yaml
+
+esphome:
+  name: scene-switch
+  friendly_name: Scene Switch
+  on_boot:
+    priority: 600
+    then:
+      - text_sensor.template.publish:
+          id: button1_state
+          state: "-"
+      - text_sensor.template.publish:
+          id: button2_state
+          state: "-"
+      - text_sensor.template.publish:
+          id: button3_state
+          state: "-"
+      - text_sensor.template.publish:
+          id: button4_state
+          state: "-"
+      - text_sensor.template.publish:
+          id: button5_state
+          state: "-"
+      - text_sensor.template.publish:
+          id: button6_state
+          state: "-"
+      # Jalankan test sweep LED secara penuh dulu sampai beres saat boot
+      - script.execute: led_test_sweep
+
+script:
+  # Soft white pulse pas tombol dipencet - ga peduli efek/warna apa yang lagi jalan
+  - id: click_flash_script
+    parameters:
+      led_index: int
+    then:
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          Color prev = (*leds)[led_index].get();
+          id(flash_prev_r) = prev.r;
+          id(flash_prev_g) = prev.g;
+          id(flash_prev_b) = prev.b;
+          (*leds)[led_index] = Color(25, 25, 25);
+          leds->schedule_show();
+      - delay: 80ms
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          (*leds)[led_index] = Color(57, 57, 57);
+          leds->schedule_show();
+      - delay: 80ms
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          (*leds)[led_index] = Color(89, 89, 89);
+          leds->schedule_show();
+      - delay: 100ms
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          (*leds)[led_index] = Color(57, 57, 57);
+          leds->schedule_show();
+      - delay: 80ms
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          (*leds)[led_index] = Color(25, 25, 25);
+          leds->schedule_show();
+      - delay: 80ms
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          if (led_index < 0 || led_index >= (int) leds->size()) return;
+          (*leds)[led_index] = Color(id(flash_prev_r), id(flash_prev_g), id(flash_prev_b));
+          leds->schedule_show();
+
+  - id: led_test_sweep
+    then:
+      - light.turn_off: led_strip
+      - light.turn_on:
+          id: led_spotlight
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_spotlight
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_spotlight
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_spotlight
+
+      - light.turn_on:
+          id: led_fan
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_fan
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_fan
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_fan
+
+      - light.turn_on:
+          id: led_ac
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_ac
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_ac
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_ac
+
+      - light.turn_on:
+          id: led_pc
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_pc
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_pc
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_pc
+
+      - light.turn_on:
+          id: led_scene5
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_scene5
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_scene5
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_scene5
+
+      - light.turn_on:
+          id: led_scene6
+          red: 100%
+          green: 0%
+          blue: 0%
+          brightness: 80%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_scene6
+          red: 0%
+          green: 100%
+          blue: 0%
+      - delay: 400ms
+      - light.turn_on:
+          id: led_scene6
+          red: 0%
+          green: 0%
+          blue: 100%
+      - delay: 400ms
+      - light.turn_off: led_scene6
+
+      # Selesai sweep - set ke idle awal sambil nunggu koneksi Wi-Fi mapan
+      - light.turn_on:
+          id: led_strip
+          brightness: 35%
+          red: 100%
+          green: 100%
+          blue: 100%
+          transition_length: 500ms
+      # Tandai kalau sweep udah kelar biar on_connect bisa lanjut
+      - globals.set:
+          id: boot_sweep_completed
+          value: "true"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+globals:
+  - id: boot_sweep_completed
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+  - id: flash_prev_r
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: flash_prev_g
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+  - id: flash_prev_b
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+  - id: has_connected_before
+    type: bool
+    restore_value: true
+    initial_value: "false"
+
+  - id: prev_effect
+    type: std::string
+    restore_value: false
+
+  - id: prev_red
+    type: float
+    restore_value: false
+    initial_value: "1.0"
+
+  - id: prev_green
+    type: float
+    restore_value: false
+    initial_value: "0.0"
+
+  - id: prev_blue
+    type: float
+    restore_value: false
+    initial_value: "0.0"
+
+  - id: prev_brightness
+    type: float
+    restore_value: false
+    initial_value: "0.35"
+
+  - id: ota_in_progress
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+    on_begin:
+      then:
+        - globals.set:
+            id: ota_in_progress
+            value: "true"
+        - sensor.template.publish:
+            id: ota_progress
+            state: 0
+        - logger.log: "OTA started"
+    on_progress:
+      then:
+        - sensor.template.publish:
+            id: ota_progress
+            state: !lambda "return x;"
+    on_end:
+      then:
+        - sensor.template.publish:
+            id: ota_progress
+            state: 100
+        - globals.set:
+            id: ota_in_progress
+            value: "false"
+    on_error:
+      then:
+        - globals.set:
+            id: ota_in_progress
+            value: "false"
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+      priority: 10
+    - ssid: !secret wifi_ssid_main
+      password: !secret wifi_password_main
+      priority: 0
+  power_save_mode: light
+
+  ap:
+    ssid: "Scene-Switch Fallback"
+    password: !secret ap_fallback_password
+
+  on_connect:
+    then:
+      - wait_until:
+          lambda: "return id(boot_sweep_completed);"
+      - if:
+          condition:
+            lambda: "return !id(has_connected_before);"
+          then:
+            - light.turn_off:
+                id: led_strip
+                transition_length: 500ms
+            - delay: 600ms
+            - light.turn_on:
+                id: led_strip
+                brightness: 35%
+                red: 100%
+                green: 0%
+                blue: 0%
+                transition_length: 1s
+            - globals.set:
+                id: has_connected_before
+                value: "true"
+          else:
+            - lambda: |-
+                ESP_LOGD("scene_switch", "on_connect restore: prev_effect='%s' r=%.2f g=%.2f b=%.2f brightness=%.2f",
+                         id(prev_effect).c_str(), id(prev_red), id(prev_green), id(prev_blue), id(prev_brightness));
+            - light.turn_off:
+                id: led_strip
+                transition_length: 300ms
+            - delay: 400ms
+            - light.turn_on:
+                id: led_strip
+                effect: "None"
+            - light.turn_on:
+                id: led_strip
+                red: !lambda "return id(prev_red);"
+                green: !lambda "return id(prev_green);"
+                blue: !lambda "return id(prev_blue);"
+                brightness: !lambda "return id(prev_brightness);"
+                transition_length: 500ms
+            - if:
+                condition:
+                  lambda: 'return !id(prev_effect).empty() && id(prev_effect) != "None";'
+                then:
+                  - light.turn_on:
+                      id: led_strip
+                      effect: !lambda "return id(prev_effect);"
+
+  on_disconnect:
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(ota_in_progress) && id(led_strip).get_effect_name() != "Boot Breathing";'
+          then:
+            - lambda: |-
+                id(prev_effect) = id(led_strip).get_effect_name();
+                id(prev_red) = id(led_strip).remote_values.get_red();
+                id(prev_green) = id(led_strip).remote_values.get_green();
+                id(prev_blue) = id(led_strip).remote_values.get_blue();
+                id(prev_brightness) = id(led_strip).remote_values.get_brightness();
+                ESP_LOGD("scene_switch", "on_disconnect saved: prev_effect='%s' r=%.2f g=%.2f b=%.2f brightness=%.2f",
+                         id(prev_effect).c_str(), id(prev_red), id(prev_green), id(prev_blue), id(prev_brightness));
+      - if:
+          condition:
+            lambda: "return !id(ota_in_progress);"
+          then:
+            - light.turn_on:
+                id: led_strip
+                red: 100%
+                green: 60%
+                blue: 0%
+                brightness: 20%
+                transition_length: 500ms
+            - light.turn_on:
+                id: led_strip
+                effect: "Boot Breathing"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+button:
+  - platform: restart
+    name: "Restart"
+
+light:
+  - platform: esp32_rmt_led_strip
+    name: "All LEDs"
+    rgb_order: GRB
+    pin: GPIO2
+    num_leds: 6
+    chipset: ws2812
+    id: led_strip
+    # Biar tiap lu ganti warna dari HA, state-nya langsung disimpen ke memori
+    on_state:
+      then:
+        - lambda: |-
+            if (!id(ota_in_progress) && id(boot_sweep_completed) && id(led_strip).get_effect_name() != "Boot Breathing") {
+              id(prev_effect) = id(led_strip).get_effect_name();
+              id(prev_red) = id(led_strip).remote_values.get_red();
+              id(prev_green) = id(led_strip).remote_values.get_green();
+              id(prev_blue) = id(led_strip).remote_values.get_blue();
+              id(prev_brightness) = id(led_strip).remote_values.get_brightness();
+            }
+    effects:
+      - pulse:
+          name: "Boot Breathing"
+          transition_length: 1000ms
+          update_interval: 1000ms
+          min_brightness: 5%
+          max_brightness: 20%
+      - addressable_rainbow:
+          name: "Rainbow Flow"
+          speed: 12
+          width: 6
+      - addressable_lambda:
+          name: "Meteor Flow (1 to 6)"
+          update_interval: 100ms
+          lambda: |-
+            static int pos = 0;
+            int n = (int) it.size();
+            Color head = Color((uint8_t)(id(prev_red) * 255), (uint8_t)(id(prev_green) * 255), (uint8_t)(id(prev_blue) * 255));
+            if (head.r == 0 && head.g == 0 && head.b == 0) head = Color(255, 255, 255);
+            for (int i = 0; i < n; i++) {
+              it[i] = it[i].get().darken(60);
+            }
+            it[pos] = head;
+            pos += 1;
+            if (pos >= n) {
+              pos = 0;
+            }
+      - addressable_lambda:
+          name: "Knight Rider"
+          update_interval: 120ms
+          lambda: |-
+            static int pos = 0;
+            static int dir = 1;
+            Color head = Color((uint8_t)(id(prev_red) * 255), (uint8_t)(id(prev_green) * 255), (uint8_t)(id(prev_blue) * 255));
+            if (head.r == 0 && head.g == 0 && head.b == 0) head = Color(255, 255, 255);
+            for (int i = 0; i < (int)it.size(); i++) {
+              it[i] = it[i].get().darken(80);
+            }
+            it[pos] = head;
+            pos += dir;
+            if (pos >= ((int)it.size() - 1)) dir = -1;
+            else if (pos <= 0) dir = 1;
+      - addressable_lambda:
+          name: "Police Strobe"
+          update_interval: 100ms
+          lambda: |-
+            static int state = 0;
+            it.all() = Color::BLACK;
+            if (state == 0 || state == 2) {
+              it[0] = Color(255, 0, 0);
+              it[1] = Color(255, 0, 0);
+              it[2] = Color(255, 0, 0);
+            } else if (state == 4 || state == 6) {
+              it[3] = Color(0, 0, 255);
+              it[4] = Color(0, 0, 255);
+              it[5] = Color(0, 0, 255);
+            }
+            state = (state + 1) % 8;
+      - addressable_color_wipe:
+          name: "Color Wipe"
+          colors:
+            - red: 100%
+              green: 0%
+              blue: 0%
+              num_leds: 1
+            - red: 0%
+              green: 100%
+              blue: 0%
+              num_leds: 1
+            - red: 0%
+              green: 0%
+              blue: 100%
+              num_leds: 1
+            - red: 100%
+              green: 100%
+              blue: 100%
+              num_leds: 1
+          add_led_interval: 150ms
+          reverse: false
+      - addressable_lambda:
+          name: "Button Colors"
+          update_interval: 1s
+          lambda: |-
+            it[0] = Color(255, 255, 255);
+            it[1] = Color(0, 180, 255);
+            it[2] = Color(0, 80, 255);
+            it[3] = Color(180, 0, 255);
+            it[4] = Color(255, 160, 0);
+            it[5] = Color(0, 255, 80);
+
+  - platform: partition
+    name: "Spotlight LED"
+    id: led_spotlight
+    segments:
+      - id: led_strip
+        from: 5
+        to: 5
+
+  - platform: partition
+    name: "Fan LED"
+    id: led_fan
+    segments:
+      - id: led_strip
+        from: 4
+        to: 4
+
+  - platform: partition
+    name: "AC LED"
+    id: led_ac
+    segments:
+      - id: led_strip
+        from: 3
+        to: 3
+
+  - platform: partition
+    name: "PC LED"
+    id: led_pc
+    segments:
+      - id: led_strip
+        from: 2
+        to: 2
+
+  - platform: partition
+    name: "Scene 5 LED"
+    id: led_scene5
+    segments:
+      - id: led_strip
+        from: 1
+        to: 1
+
+  - platform: partition
+    name: "Scene 6 LED"
+    id: led_scene6
+    segments:
+      - id: led_strip
+        from: 0
+        to: 0
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    ssid:
+      name: "SSID"
+    bssid:
+      name: "BSSID"
+
+  - platform: version
+    name: "Build"
+
+  - platform: template
+    name: "Uptime (formatted)"
+    entity_category: diagnostic
+    lambda: |-
+      if (!id(uptime_sensor).has_state()) {
+        return std::string("--");
+      }
+      int seconds = (int) id(uptime_sensor).state;
+      int days = seconds / 86400;
+      int hours = (seconds % 86400) / 3600;
+      int minutes = (seconds % 3600) / 60;
+      char buf[32];
+      if (days > 0) {
+        snprintf(buf, sizeof(buf), "%dd %dh %dm", days, hours, minutes);
+      } else if (hours > 0) {
+        snprintf(buf, sizeof(buf), "%dh %dm", hours, minutes);
+      } else {
+        snprintf(buf, sizeof(buf), "%dm", minutes);
+      }
+      return std::string(buf);
+    update_interval: 60s
+
+  - platform: template
+    name: "Button 1 State"
+    id: button1_state
+
+  - platform: template
+    name: "Button 2 State"
+    id: button2_state
+
+  - platform: template
+    name: "Button 3 State"
+    id: button3_state
+
+  - platform: template
+    name: "Button 4 State"
+    id: button4_state
+
+  - platform: template
+    name: "Button 5 State"
+    id: button5_state
+
+  - platform: template
+    name: "Button 6 State"
+    id: button6_state
+
+sensor:
+  - platform: wifi_signal
+    name: "RSSI"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "Uptime (raw)"
+    id: uptime_sensor
+    internal: true
+
+  - platform: internal_temperature
+    name: "Temperature"
+
+  - platform: template
+    name: "OTA Progress"
+    id: ota_progress
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO27
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 1 - Spotlight"
+    id: button_spotlight
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 5
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - logger.log: "Button: spotlight - double"
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "double"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "spotlight"
+                click_type: "double"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - logger.log: "Button: spotlight - long"
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "long"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "spotlight"
+                click_type: "long"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - logger.log: "Button: spotlight - single"
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "single"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "spotlight"
+                click_type: "single"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button1_state
+              state: "-"
+
+  - platform: gpio
+    pin:
+      number: GPIO14
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 2 - Fan"
+    id: button_fan
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 4
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - logger.log: "Button: fan - double"
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "double"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "fan"
+                click_type: "double"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - logger.log: "Button: fan - long"
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "long"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "fan"
+                click_type: "long"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - logger.log: "Button: fan - single"
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "single"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "fan"
+                click_type: "single"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button2_state
+              state: "-"
+
+  - platform: gpio
+    pin:
+      number: GPIO32
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 3 - AC"
+    id: button_ac
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 3
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - logger.log: "Button: ac - double"
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "double"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "ac"
+                click_type: "double"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - logger.log: "Button: ac - long"
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "long"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "ac"
+                click_type: "long"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - logger.log: "Button: ac - single"
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "single"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "ac"
+                click_type: "single"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button3_state
+              state: "-"
+
+  - platform: gpio
+    pin:
+      number: GPIO33
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 4 - PC"
+    id: button_pc
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 2
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed);'
+              then:
+                - if:
+                    condition:
+                      lambda: 'return id(media_mode);'
+                    then:
+                      - logger.log: "Button: pc - media volume up"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_media
+                          data:
+                            action: "volume_up"
+                    else:
+                      - logger.log: "Button: pc - double"
+                      - text_sensor.template.publish:
+                          id: button4_state
+                          state: "double"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_button
+                          data:
+                            button: "pc"
+                            click_type: "double"
+                      - delay: 1s
+                      - text_sensor.template.publish:
+                          id: button4_state
+                          state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed) && !id(media_mode);'
+              then:
+                - logger.log: "Button: pc - long"
+                - text_sensor.template.publish:
+                    id: button4_state
+                    state: "long"
+                - homeassistant.event:
+                    event: esphome.scene_switch_button
+                    data:
+                      button: "pc"
+                      click_type: "long"
+                - delay: 1s
+                - text_sensor.template.publish:
+                    id: button4_state
+                    state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed);'
+              then:
+                - if:
+                    condition:
+                      lambda: 'return id(media_mode);'
+                    then:
+                      - logger.log: "Button: pc - media next"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_media
+                          data:
+                            action: "next"
+                    else:
+                      - logger.log: "Button: pc - single"
+                      - text_sensor.template.publish:
+                          id: button4_state
+                          state: "single"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_button
+                          data:
+                            button: "pc"
+                            click_type: "single"
+                      - delay: 1s
+                      - text_sensor.template.publish:
+                          id: button4_state
+                          state: "-"
+
+  - platform: gpio
+    pin:
+      number: GPIO25
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 5"
+    id: button_scene5
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 1
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - logger.log: "Button: scene5 - double"
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "double"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "scene5"
+                click_type: "double"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - logger.log: "Button: scene5 - long"
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "long"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "scene5"
+                click_type: "long"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - logger.log: "Button: scene5 - single"
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "single"
+          - homeassistant.event:
+              event: esphome.scene_switch_button
+              data:
+                button: "scene5"
+                click_type: "single"
+          - delay: 1s
+          - text_sensor.template.publish:
+              id: button5_state
+              state: "-"
+
+  - platform: gpio
+    pin:
+      number: GPIO26
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Button 6"
+    id: button_scene6
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      - script.execute:
+          id: click_flash_script
+          led_index: 0
+    on_multi_click:
+      - timing:
+          - ON for at most 350ms
+          - OFF for at most 300ms
+          - ON for at most 350ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed);'
+              then:
+                - if:
+                    condition:
+                      lambda: 'return id(media_mode);'
+                    then:
+                      - logger.log: "Button: scene6 - media volume down"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_media
+                          data:
+                            action: "volume_down"
+                    else:
+                      - logger.log: "Button: scene6 - double"
+                      - text_sensor.template.publish:
+                          id: button6_state
+                          state: "double"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_button
+                          data:
+                            button: "scene6"
+                            click_type: "double"
+                      - delay: 1s
+                      - text_sensor.template.publish:
+                          id: button6_state
+                          state: "-"
+      - timing:
+          - ON for at least 600ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed) && !id(media_mode);'
+              then:
+                - logger.log: "Button: scene6 - long"
+                - text_sensor.template.publish:
+                    id: button6_state
+                    state: "long"
+                - homeassistant.event:
+                    event: esphome.scene_switch_button
+                    data:
+                      button: "scene6"
+                      click_type: "long"
+                - delay: 1s
+                - text_sensor.template.publish:
+                    id: button6_state
+                    state: "-"
+      - timing:
+          - ON for at most 350ms
+          - OFF for at least 300ms
+        then:
+          - if:
+              condition:
+                lambda: 'return !id(chord_consumed);'
+              then:
+                - if:
+                    condition:
+                      lambda: 'return id(media_mode);'
+                    then:
+                      - logger.log: "Button: scene6 - media prev"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_media
+                          data:
+                            action: "prev"
+                    else:
+                      - logger.log: "Button: scene6 - single"
+                      - text_sensor.template.publish:
+                          id: button6_state
+                          state: "single"
+                      - homeassistant.event:
+                          event: esphome.scene_switch_button
+                          data:
+                            button: "scene6"
+                            click_type: "single"
+                      - delay: 1s
+                      - text_sensor.template.publish:
+                          id: button6_state
+                          state: "-"

@@ -1,0 +1,174 @@
+# Media Mode "plugin" - hold Button 4 (PC) + Button 6 together for ~450ms
+# to toggle Spotify/PC media control mode on buttons 4 & 6.
+# The actual on_multi_click branching for buttons 4/6 still lives in
+# sceneswitch.yaml itself (ESPHome packages can't patch existing list items).
+
+globals:
+  - id: media_mode
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: chord_active
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: chord_consumed
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: chord_hold_start
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+  # Saved *pre-brightness* colors for PC LED (index 2) and scene6 LED (index 0).
+  # Stored un-scaled (0-255 raw) so we can re-scale to whatever HA brightness
+  # is at restore time.
+  - id: media_prev_pc_r
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_pc_g
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_pc_b
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_scene6_r
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_scene6_g
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_scene6_b
+    type: uint8_t
+    restore_value: false
+    initial_value: "255"
+  - id: media_prev_brightness
+    type: float
+    restore_value: false
+    initial_value: "1.0"
+
+interval:
+  # Chord detector: PC + scene6 held together for 450ms toggles media mode
+  - interval: 50ms
+    then:
+      - lambda: |-
+          bool both_held = id(button_pc).state && id(button_scene6).state;
+          if (both_held) {
+            if (!id(chord_active)) {
+              id(chord_active) = true;
+              id(chord_hold_start) = millis();
+            } else if (!id(chord_consumed) && (millis() - id(chord_hold_start) >= 450)) {
+              id(chord_consumed) = true;
+              id(media_mode) = !id(media_mode);
+              id(media_mode_confirm_script).execute();
+            }
+          } else {
+            id(chord_active) = false;
+            id(chord_consumed) = false;
+          }
+
+  # Live brightness tracking: while media mode is active, keep the cyan
+  # LEDs on PC + scene6 synced to whatever HA master brightness currently is.
+  - interval: 100ms
+    then:
+      - lambda: |-
+          if (!id(media_mode)) return;
+          if (!id(boot_sweep_completed)) return;
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          float b = id(led_strip).remote_values.get_brightness();
+          // Only redraw if color actually differs to avoid hammering the strip
+          Color cyan = Color(0, (uint8_t)(200 * b), (uint8_t)(255 * b));
+          Color cur_pc = (*leds)[2].get();
+          Color cur_s6 = (*leds)[0].get();
+          if (cur_pc.r != cyan.r || cur_pc.g != cyan.g || cur_pc.b != cyan.b ||
+              cur_s6.r != cyan.r || cur_s6.g != cyan.g || cur_s6.b != cyan.b) {
+            (*leds)[2] = cyan;
+            (*leds)[0] = cyan;
+            leds->schedule_show();
+          }
+
+script:
+  - id: media_mode_confirm_script
+    then:
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          float b = id(led_strip).remote_values.get_brightness();
+          if (b < 0.01f) b = 0.01f;  // avoid div-by-zero on save
+
+          if (id(media_mode)) {
+            // Entering media mode: save *un-scaled* colors so we can
+            // re-apply at whatever brightness HA has at restore time.
+            float inv = 1.0f / b;
+            Color pc = (*leds)[2].get();
+            Color s6 = (*leds)[0].get();
+            float r;
+            r = pc.r * inv; id(media_prev_pc_r)     = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = pc.g * inv; id(media_prev_pc_g)     = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = pc.b * inv; id(media_prev_pc_b)     = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = s6.r * inv; id(media_prev_scene6_r) = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = s6.g * inv; id(media_prev_scene6_g) = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = s6.b * inv; id(media_prev_scene6_b) = (uint8_t)(r > 255.0f ? 255.0f : r);
+            id(media_prev_brightness) = b;
+          }
+
+          // Blink 1: green at current brightness
+          Color green = Color(0, (uint8_t)(255 * b), 0);
+          (*leds)[2] = green;
+          (*leds)[0] = green;
+          leds->schedule_show();
+
+      - delay: 150ms
+
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          (*leds)[2] = Color(0, 0, 0);
+          (*leds)[0] = Color(0, 0, 0);
+          leds->schedule_show();
+
+      - delay: 150ms
+
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          float b = id(led_strip).remote_values.get_brightness();
+          Color green = Color(0, (uint8_t)(255 * b), 0);
+          (*leds)[2] = green;
+          (*leds)[0] = green;
+          leds->schedule_show();
+
+      - delay: 150ms
+
+      - lambda: |-
+          auto *leds = (light::AddressableLight *) id(led_strip).get_output();
+          float b = id(led_strip).remote_values.get_brightness();
+
+          if (id(media_mode)) {
+            // Just entered: cyan at current brightness
+            Color cyan = Color(0, (uint8_t)(200 * b), (uint8_t)(255 * b));
+            (*leds)[2] = cyan;
+            (*leds)[0] = cyan;
+          } else {
+            // Exiting: restore saved colors, re-scaled to *current* brightness.
+            float r;
+            r = id(media_prev_pc_r) * b;
+            uint8_t pc_r = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = id(media_prev_pc_g) * b;
+            uint8_t pc_g = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = id(media_prev_pc_b) * b;
+            uint8_t pc_b = (uint8_t)(r > 255.0f ? 255.0f : r);
+
+            r = id(media_prev_scene6_r) * b;
+            uint8_t s6_r = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = id(media_prev_scene6_g) * b;
+            uint8_t s6_g = (uint8_t)(r > 255.0f ? 255.0f : r);
+            r = id(media_prev_scene6_b) * b;
+            uint8_t s6_b = (uint8_t)(r > 255.0f ? 255.0f : r);
+
+            (*leds)[2] = Color(pc_r, pc_g, pc_b);
+            (*leds)[0] = Color(s6_r, s6_g, s6_b);
+          }
+          leds->schedule_show();
