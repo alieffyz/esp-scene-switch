@@ -30,22 +30,39 @@ A 6-button ESP32 scene controller with Kailh Choc switches and per-button WS2812
 
 ## Optional Plugins
 
-You can extend the functionality of this scene switch by adding custom ESPHome configs.
+This project uses ESPHome's `packages:` feature to keep optional functionality in separate files instead of bloating `sceneswitch.yaml`. `packages:` can only *add* new globals, scripts, sensors, etc. — it can't patch existing list items (like an existing button's `on_multi_click:` block), so a plugin that needs to change existing button behavior still requires a small edit directly in `sceneswitch.yaml` (documented per-plugin below).
 
-**Included Example Plugins (`plugins/`):**
-- `media_mode.yaml`: Adds media control logic mapped to button clicks. Requires [HASS.Agent](https://github.com/HASS-Agent/HASS.Agent) installed on your Windows PC to route media commands (play/pause, track skip, volume) from Home Assistant.
+**Included Example Plugin (`plugins/media_mode.yaml`):**
 
-**How to enable plugins:**
-1. Create or copy your custom YAML file inside the `plugins/` directory (e.g., `plugins/media_mode.yaml`).
-2. Open `sceneswitch.yaml` and locate the `PLUGINS` section at the bottom.
-3. Uncomment the include directive and point it to your exact file name:
-   `<<: !include plugins/media_mode.yaml`
+Adds a "media mode" you can toggle by holding Button 4 (PC) + Button 6 together for ~450ms. While active, Buttons 4/5/6 send media-control events instead of their normal scene actions:
+
+| Button | Single-click | Double-click | Long-press |
+|---|---|---|---|
+| 6 | Previous track | Volume down | — |
+| 5 | Play/Pause | (unchanged, normal scene) | Mute |
+| 4 | Next track | Volume up | — |
+
+Entering/exiting mode gives a green double-blink confirmation, then the three LEDs stay a dim cyan while active. Two entities are also exposed to Home Assistant: `binary_sensor.scene_switch_media_mode` (on/off) and `text_sensor.scene_switch_current_mode` ("Scene" / "Media").
+
+Requires [HASS.Agent](https://github.com/HASS-Agent/HASS.Agent) (or similar) installed on your Windows PC, exposed to HA as a `media_player` entity, plus a Home Assistant automation listening for the `esphome.scene_switch_media` event (see below) to actually route the commands to it.
+
+**How it's wired in (already done for this plugin, shown here as a reference for writing your own):**
+
+1. `sceneswitch.yaml` loads it via `packages:` at the top of the file:
+   ```yaml
+   packages:
+     media_mode: !include plugins/media_mode.yaml
+   ```
+   Packages are always active once included — there's no toggle/uncomment step.
+2. Buttons 4, 5, and 6's `on_multi_click:` blocks in `sceneswitch.yaml` each check `media_mode` (a global defined in the plugin) and branch between firing the normal `esphome.scene_switch_button` event or the plugin's `esphome.scene_switch_media` event.
+
+To add your own plugin: create a new file under `plugins/`, add it to the `packages:` map the same way, and if it needs to change existing button behavior, edit that button's block in `sceneswitch.yaml` directly.
 
 ## Home Assistant Automation Mapping
 
 The firmware fires Home Assistant events for each button press. Because workflows vary, **button actions are not hardcoded in ESPHome**. You must create Home Assistant automations triggered by these events.
 
-**Example Automation (YAML):**
+**Example Automation — scene buttons (`esphome.scene_switch_button`):**
 ```yaml
 alias: Scene Switch - Spotlight Gestures
 triggers:
@@ -95,9 +112,52 @@ actions:
               entity_id: script.all_lights_smart_toggle
 ```
 
+**Example Automation — media mode (`esphome.scene_switch_media`, only needed if you enable the `media_mode` plugin):**
+```yaml
+alias: Scene Switch - Media Control
+trigger:
+  - platform: event
+    event_type: esphome.scene_switch_media
+action:
+  - choose:
+      - conditions: "{{ trigger.event.data.action == 'next' }}"
+        sequence:
+          - service: media_player.media_next_track
+            target:
+              entity_id: media_player.your_pc_here
+      - conditions: "{{ trigger.event.data.action == 'prev' }}"
+        sequence:
+          - service: media_player.media_previous_track
+            target:
+              entity_id: media_player.your_pc_here
+      - conditions: "{{ trigger.event.data.action == 'volume_up' }}"
+        sequence:
+          - service: media_player.volume_up
+            target:
+              entity_id: media_player.your_pc_here
+      - conditions: "{{ trigger.event.data.action == 'volume_down' }}"
+        sequence:
+          - service: media_player.volume_down
+            target:
+              entity_id: media_player.your_pc_here
+      - conditions: "{{ trigger.event.data.action == 'play_pause' }}"
+        sequence:
+          - service: media_player.media_play_pause
+            target:
+              entity_id: media_player.your_pc_here
+      - conditions: "{{ trigger.event.data.action == 'mute' }}"
+        sequence:
+          - service: media_player.volume_mute
+            target:
+              entity_id: media_player.your_pc_here
+            data:
+              is_volume_muted: true
+mode: single
+```
+
 ## Hardware
 
-- ESP32 (any variant with enough GPIOs for 6 buttons + 1 LED data pin)
+- ESP32 (any variant with enough GPIOs for 6 buttons + 1 LED data pin). Tested on a generic ESP32 DevKit V1 (`board: esp32dev` in the config, Arduino framework). Should work on any classic ESP32 (not S2/S3/C3) dev board with the same GPIO layout — if you're on a different chip variant, update `board:` under the `esp32:` block and double-check your GPIO assignments, since pin availability differs across variants.
 - 6x Kailh Choc V1 switches
 - 6x WS2812B addressable LEDs (one per button)
 - Custom 3D-printed enclosure (FDM) — CAD files in [`cad/`](./cad).
