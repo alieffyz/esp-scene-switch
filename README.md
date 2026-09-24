@@ -1,3 +1,5 @@
+![Scene Switch](images/hero.jpg)
+
 # Scene Switch
 
 A 6-button ESP32 scene controller with Kailh Choc switches and per-button WS2812B LED feedback, built for Home Assistant.
